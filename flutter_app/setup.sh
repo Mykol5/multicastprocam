@@ -1,30 +1,130 @@
 #!/bin/bash
-# setup.sh - Script to setup Flutter project
+# setup.sh - Complete setup script for MultiCast Pro
+
+echo "📱 Setting up MultiCast Pro Flutter project..."
 
 # Backup custom lib if exists
 if [ -d "lib" ]; then
+  echo "📁 Backing up custom lib folder..."
   cp -r lib ../lib_backup
 fi
 
 # Go back to root
 cd ..
 
-# Delete old flutter_app
-rm -rf flutter_app
+# Delete old flutter_app if exists
+if [ -d "flutter_app" ]; then
+  echo "🗑️  Removing old flutter_app..."
+  rm -rf flutter_app
+fi
 
 # Create fresh Flutter project
+echo "🏗️  Creating new Flutter project..."
 flutter create flutter_app --platforms=android,web
 
 # Restore custom lib
 if [ -d "lib_backup" ]; then
+  echo "📁 Restoring custom lib folder..."
   rm -rf flutter_app/lib
   mv lib_backup flutter_app/lib
 fi
 
-# Write correct pubspec.yaml
-cat > flutter_app/pubspec.yaml << 'EOF'
+# Now fix everything in flutter_app
+cd flutter_app
+
+# 1. Fix Android build.gradle with correct SDK versions
+echo "🔧 Fixing Android build.gradle..."
+cat > android/app/build.gradle << 'EOF'
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+
+android {
+    compileSdkVersion 34
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        applicationId "com.multicast.pro"
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+}
+EOF
+
+# 2. Update gradle.properties
+echo "🔧 Updating gradle.properties..."
+cat > android/gradle.properties << 'EOF'
+org.gradle.jvmargs=-Xmx4G
+android.useAndroidX=true
+android.enableJetifier=true
+EOF
+
+# 3. Update gradle-wrapper.properties
+echo "🔧 Updating gradle-wrapper.properties..."
+cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.5-all.zip
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+EOF
+
+# 4. Update pubspec.yaml
+echo "📦 Updating pubspec.yaml..."
+cat > pubspec.yaml << 'EOF'
 name: multicast_pro
-description: MultiCast Pro
+description: MultiCast Pro - Cross-platform streaming
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -50,6 +150,51 @@ flutter:
   uses-material-design: true
 EOF
 
-# Get dependencies
-cd flutter_app
+# 5. Update AndroidManifest.xml to add permissions
+echo "🔧 Updating AndroidManifest.xml..."
+cat > android/app/src/main/AndroidManifest.xml << 'EOF'
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    
+    <application
+        android:label="MultiCast Pro"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+</manifest>
+EOF
+
+# 6. Get dependencies
+echo "📥 Installing dependencies..."
 flutter pub get
+
+# 7. Verify minSdkVersion
+echo "✅ Verifying Android SDK settings..."
+grep "minSdkVersion" android/app/build.gradle
+
+echo "✅ Setup complete! Building now..."
