@@ -1,8 +1,6 @@
-// adjusted
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/stream_provider.dart';
+import '../../providers/multicast_stream_provider.dart';
 import 'streaming_screen.dart';
 
 class StreamerSetupScreen extends StatefulWidget {
@@ -83,7 +81,7 @@ class _StreamerSetupScreenState extends State<StreamerSetupScreen> {
 
   void _startStreaming() async {
     if (_formKey.currentState!.validate()) {
-      final provider = Provider.of<StreamProvider>(context, listen: false);
+      final provider = Provider.of<MultiCastStreamProvider>(context, listen: false);
       
       await provider.initializeAsStreamer(
         _roomIdController.text,
