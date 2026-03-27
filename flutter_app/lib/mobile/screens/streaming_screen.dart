@@ -27,13 +27,11 @@ class StreamingScreen extends StatelessWidget {
           Expanded(
             child: Container(
               color: Colors.black,
-              child: provider.localStream != null
-                  ? RTCVideoView(
-                      provider.localStream!,
-                      mirror: true,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    )
-                  : Center(child: CircularProgressIndicator()),
+              child: RTCVideoView(
+                provider.localRenderer,
+                mirror: true,
+                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+              ),
             ),
           ),
           Container(
