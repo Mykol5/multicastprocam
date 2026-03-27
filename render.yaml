@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: multicast-pro-signaling
+    runtime: node
+    plan: free
+    buildCommand: cd signaling_server && npm install
+    startCommand: cd signaling_server && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    healthCheckPath: /health
+    autoDeploy: true
