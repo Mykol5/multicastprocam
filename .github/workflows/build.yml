@@ -6,81 +6,106 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-android-web:
-    name: Build Android & Web
+  # Android Build
+  android:
+    name: Build Android
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.16.0'
       
-      - name: Make script executable
-        run: chmod +x flutter_app/setup.sh
+      - name: Setup
+        run: |
+          mkdir -p flutter_app/lib
+          # Your lib files should already be in the repo
+          chmod +x flutter_app/setup.sh
+          cd flutter_app && ./setup.sh
       
-      - name: Run setup script
-        working-directory: ./flutter_app
-        run: ./setup.sh
-      
-      - name: Build Android APK
+      - name: Build APK
         working-directory: ./flutter_app
         run: flutter build apk --release
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-app
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+
+  # Web Build
+  web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Setup
+        run: |
+          chmod +x flutter_app/setup.sh
+          cd flutter_app && ./setup.sh
       
       - name: Build Web
         working-directory: ./flutter_app
         run: flutter build web --release
       
-      - name: Upload Android & Web builds
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-app
+          path: flutter_app/build/web/
+
+  # Windows Build
+  windows:
+    name: Build Windows
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Create Windows project
+        shell: pwsh
+        run: |
+          cd flutter_app
+          if (Test-Path "windows") { 
+            Remove-Item -Recurse -Force windows
+          }
+          flutter create --platforms=windows .
+          
+          # Update pubspec
+          @"
+flutter_webrtc: ^0.9.47
+socket_io_client: ^2.0.1
+permission_handler: ^11.0.0
+provider: ^6.1.0
+universal_platform: ^1.0.0+1
+uuid: ^4.0.0
+"@ | Add-Content pubspec.yaml
+          
+          flutter pub get
+      
+      - name: Build Windows
+        working-directory: ./flutter_app
+        run: flutter build windows --release
+      
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: android-web-builds
-          path: |
-            flutter_app/build/app/outputs/flutter-apk/app-release.apk
-            flutter_app/build/web/
-          retention-days: 30
+          name: windows-app
+          path: flutter_app/build/windows/x64/runner/Release/
 
-build-windows:
-  name: Build Windows Desktop
-  runs-on: windows-latest
-  
-  steps:
-    - uses: actions/checkout@v4
-    
-    - uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.16.0'
-    
-    - name: Run setup script
-      working-directory: ./flutter_app
-      shell: bash
-      run: ./setup.sh
-    
-    - name: Build Windows
-      working-directory: ./flutter_app
-      run: flutter build windows --release
-    
-    - name: List build output (debug)
-      working-directory: ./flutter_app
-      run: |
-        echo "Checking build output..."
-        dir build\windows\x64\runner\Release
-        echo "Contents of Release folder:"
-        dir build\windows\x64\runner\Release\*
-    
-    - name: Upload Windows build
-      uses: actions/upload-artifact@v4
-      with:
-        name: windows-desktop
-        # Fix the path - use the correct output location
-        path: flutter_app/build/windows/x64/runner/Release/
-        retention-days: 30
-
-  build-macos:
-    name: Build macOS Desktop
+  # macOS Build
+  macos:
+    name: Build macOS
     runs-on: macos-latest
     
     steps:
@@ -90,31 +115,42 @@ build-windows:
         with:
           flutter-version: '3.16.0'
       
-      - name: Run setup script
-        working-directory: ./flutter_app
-        run: ./setup.sh
+      - name: Setup
+        run: |
+          cd flutter_app
+          flutter create --platforms=macos .
+          
+          cat >> pubspec.yaml << 'EOF'
+          
+          flutter_webrtc: ^0.9.47
+          socket_io_client: ^2.0.1
+          permission_handler: ^11.0.0
+          provider: ^6.1.0
+          universal_platform: ^1.0.0+1
+          uuid: ^4.0.0
+          EOF
+          
+          flutter pub get
       
       - name: Build macOS
         working-directory: ./flutter_app
         run: flutter build macos --release
       
-      - name: Create macOS DMG
+      - name: Create DMG
         working-directory: ./flutter_app
         run: |
-          # Create a DMG for easier distribution
-          hdiutil create -volname "MultiCast Pro" -srcfolder build/macos/Build/Products/Release/multicast_pro.app -ov -format UDZO multicast_pro.dmg
+          hdiutil create -volname "MultiCast Pro" \
+            -srcfolder build/macos/Build/Products/Release/multicast_pro.app \
+            -ov -format UDZO multicast_pro.dmg
       
-      - name: Upload macOS build
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: macos-desktop
-          path: |
-            flutter_app/build/macos/Build/Products/Release/multicast_pro.app
-            flutter_app/multicast_pro.dmg
-          retention-days: 30
+          name: macos-app
+          path: flutter_app/multicast_pro.dmg
 
-  build-linux:
-    name: Build Linux Desktop
+  # Linux Build
+  linux:
+    name: Build Linux
     runs-on: ubuntu-latest
     
     steps:
@@ -124,22 +160,33 @@ build-windows:
         with:
           flutter-version: '3.16.0'
       
-      - name: Install Linux dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
       
-      - name: Run setup script
-        working-directory: ./flutter_app
-        run: ./setup.sh
+      - name: Setup
+        run: |
+          cd flutter_app
+          flutter create --platforms=linux .
+          
+          cat >> pubspec.yaml << 'EOF'
+          
+          flutter_webrtc: ^0.9.47
+          socket_io_client: ^2.0.1
+          permission_handler: ^11.0.0
+          provider: ^6.1.0
+          universal_platform: ^1.0.0+1
+          uuid: ^4.0.0
+          EOF
+          
+          flutter pub get
       
       - name: Build Linux
         working-directory: ./flutter_app
         run: flutter build linux --release
       
-      - name: Upload Linux build
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: linux-desktop
+          name: linux-app
           path: flutter_app/build/linux/x64/release/bundle/
-          retention-days: 30
