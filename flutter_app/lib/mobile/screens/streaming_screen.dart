@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';  // Changed from webrtc
-import '../../providers/stream_provider.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import '../../providers/multicast_stream_provider.dart';
 
 class StreamingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<StreamProvider>(context);
+    final provider = Provider.of<MultiCastStreamProvider>(context);
     
     return Scaffold(
       appBar: AppBar(
