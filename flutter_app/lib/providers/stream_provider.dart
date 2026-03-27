@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';  // Changed from webrtc
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class StreamProvider extends ChangeNotifier {
   Socket? socket;
@@ -102,7 +102,7 @@ class StreamProvider extends ChangeNotifier {
       peerConnection!.addTrack(track, localStream!);
     });
     
-    socket!.on('offer', (data) async {
+    socket!.on('offer', (dynamic data) async {
       await peerConnection!.setRemoteDescription(
         RTCSessionDescription(data['sdp']['sdp'], data['sdp']['type'])
       );
@@ -138,7 +138,7 @@ class StreamProvider extends ChangeNotifier {
   }
   
   void _setupSocketListenersForViewer() {
-    socket!.on('streamers-list', (List<dynamic> data) {
+    socket!.on('streamers-list', (dynamic data) {
       streamers = List<Map<String, dynamic>>.from(data);
       if (streamers.isNotEmpty && activeStreamerId == null) {
         activeStreamerId = streamers[0]['streamerId'];
@@ -147,12 +147,12 @@ class StreamProvider extends ChangeNotifier {
       notifyListeners();
     });
     
-    socket!.on('streamer-joined', (Map<String, dynamic> data) {
-      streamers.add(data);
+    socket!.on('streamer-joined', (dynamic data) {
+      streamers.add(Map<String, dynamic>.from(data));
       notifyListeners();
     });
     
-    socket!.on('streamer-left', (Map<String, dynamic> data) {
+    socket!.on('streamer-left', (dynamic data) {
       streamers.removeWhere((s) => s['streamerId'] == data['streamerId']);
       if (activeStreamerId == data['streamerId']) {
         activeStreamerId = streamers.isNotEmpty ? streamers[0]['streamerId'] : null;
@@ -163,11 +163,11 @@ class StreamProvider extends ChangeNotifier {
       notifyListeners();
     });
     
-    socket!.on('offer', (Map<String, dynamic> data) async {
+    socket!.on('offer', (dynamic data) async {
       await _handleOffer(data);
     });
     
-    socket!.on('answer', (Map<String, dynamic> data) async {
+    socket!.on('answer', (dynamic data) async {
       if (peerConnection != null) {
         await peerConnection!.setRemoteDescription(
           RTCSessionDescription(data['sdp']['sdp'], data['sdp']['type'])
@@ -175,7 +175,7 @@ class StreamProvider extends ChangeNotifier {
       }
     });
     
-    socket!.on('ice-candidate', (Map<String, dynamic> data) async {
+    socket!.on('ice-candidate', (dynamic data) async {
       if (peerConnection != null && data['candidate'] != null) {
         await peerConnection!.addCandidate(
           RTCIceCandidate(
@@ -232,7 +232,7 @@ class StreamProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  Future<void> _handleOffer(Map<String, dynamic> data) async {
+  Future<void> _handleOffer(dynamic data) async {
     if (peerConnection == null) {
       peerConnection = await createPeerConnection(config);
       
