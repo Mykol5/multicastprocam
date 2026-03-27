@@ -110,12 +110,10 @@ class _WebViewerScreenState extends State<WebViewerScreen> {
                 child: Container(
                   margin: EdgeInsets.all(20),
                   decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
-                  child: provider.remoteStream != null
-                      ? RTCVideoView(
-                          provider.remoteStream!,
-                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
-                        )
-                      : Center(child: Text('Waiting for stream...', style: TextStyle(color: Colors.white))),
+                  child: RTCVideoView(
+                    provider.remoteRenderer,
+                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+                  ),
                 ),
               ),
               Container(
