@@ -16,30 +16,22 @@ jobs:
         with:
           flutter-version: '3.16.0'
       
-      # Create fresh Flutter project with our lib folder
       - name: Setup Flutter project
         run: |
-          # Backup our custom lib folder
-          if [ -d "flutter_app/lib" ]; then
-            cp -r flutter_app/lib ./lib_backup
-          fi
-          
-          # Delete existing flutter_app if it exists
-          rm -rf flutter_app
-          
           # Create fresh Flutter project
           flutter create flutter_app --platforms=android,web
           
-          # Restore our custom lib folder
-          if [ -d "./lib_backup" ]; then
+          # Copy custom lib if it exists
+          if [ -d "lib_backup" ]; then
             rm -rf flutter_app/lib
-            mv ./lib_backup flutter_app/lib
+            mv lib_backup flutter_app/lib
           fi
-          
-          # Replace pubspec.yaml with our correct version
+      
+      - name: Fix pubspec.yaml
+        run: |
           cat > flutter_app/pubspec.yaml << 'EOF'
 name: multicast_pro
-description: MultiCast Pro - Cross-platform streaming
+description: MultiCast Pro
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -65,8 +57,7 @@ flutter:
   uses-material-design: true
 EOF
           
-          cd flutter_app
-          flutter pub get
+          cd flutter_app && flutter pub get
       
       - name: Build Android APK
         working-directory: ./flutter_app
@@ -82,4 +73,3 @@ EOF
           path: |
             flutter_app/build/app/outputs/flutter-apk/app-release.apk
             flutter_app/build/web/
-          retention-days: 30
