@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:webrtc/webrtc.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';  // Changed from webrtc
 import '../../providers/stream_provider.dart';
 
 class StreamingScreen extends StatelessWidget {
@@ -62,6 +62,8 @@ class StreamingScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 10),
                 Text('Room ID: ${provider.roomId}', style: TextStyle(color: Colors.white70)),
+                SizedBox(height: 5),
+                Text('Share this code with viewers', style: TextStyle(color: Colors.white54, fontSize: 12)),
               ],
             ),
           ),
