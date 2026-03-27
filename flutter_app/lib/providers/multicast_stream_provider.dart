@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-class StreamProvider extends ChangeNotifier {
+class MultiCastStreamProvider extends ChangeNotifier {
   Socket? socket;
   RTCPeerConnection? peerConnection;
   MediaStream? localStream;
