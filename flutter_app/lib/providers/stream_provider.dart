@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart';
-import 'package:webrtc/webrtc.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';  // Changed from webrtc
 
 class StreamProvider extends ChangeNotifier {
   Socket? socket;
@@ -16,7 +16,6 @@ class StreamProvider extends ChangeNotifier {
   String? activeStreamerId;
   
   String get serverUrl {
-    // Change this to your Render URL after deployment
     if (kReleaseMode) {
       return 'https://multicast-pro-signaling.onrender.com';
     }
@@ -72,6 +71,9 @@ class StreamProvider extends ChangeNotifier {
         socket!.emit('viewer-join', roomId);
       }
     });
+    
+    socket!.onConnectError((data) => print('Connection error: $data'));
+    socket!.onError((data) => print('Socket error: $data'));
   }
   
   Future<void> _setupLocalStream() async {
@@ -84,8 +86,13 @@ class StreamProvider extends ChangeNotifier {
       }
     };
     
-    localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    notifyListeners();
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      notifyListeners();
+    } catch (e) {
+      print('Error getting media: $e');
+      rethrow;
+    }
   }
   
   Future<void> _setupPeerConnectionForStreamer() async {
@@ -97,7 +104,7 @@ class StreamProvider extends ChangeNotifier {
     
     socket!.on('offer', (data) async {
       await peerConnection!.setRemoteDescription(
-        RTCSessionDescription(data['sdp'], 'offer')
+        RTCSessionDescription(data['sdp']['sdp'], data['sdp']['type'])
       );
       
       final answer = await peerConnection!.createAnswer();
@@ -105,7 +112,10 @@ class StreamProvider extends ChangeNotifier {
       
       socket!.emit('answer', {
         'target': data['from'],
-        'sdp': answer.toMap(),
+        'sdp': {
+          'sdp': answer.sdp,
+          'type': answer.type,
+        },
         'streamerId': socket!.id,
       });
     });
@@ -113,9 +123,17 @@ class StreamProvider extends ChangeNotifier {
     peerConnection!.onIceCandidate = (candidate) {
       if (candidate != null) {
         socket!.emit('ice-candidate', {
-          'candidate': candidate.toMap(),
+          'candidate': {
+            'candidate': candidate.candidate,
+            'sdpMid': candidate.sdpMid,
+            'sdpMLineIndex': candidate.sdpMLineIndex,
+          },
         });
       }
+    };
+    
+    peerConnection!.onIceConnectionState = (state) {
+      print('ICE Connection State: $state');
     };
   }
   
@@ -152,17 +170,19 @@ class StreamProvider extends ChangeNotifier {
     socket!.on('answer', (Map<String, dynamic> data) async {
       if (peerConnection != null) {
         await peerConnection!.setRemoteDescription(
-          RTCSessionDescription(data['sdp'], 'answer')
+          RTCSessionDescription(data['sdp']['sdp'], data['sdp']['type'])
         );
       }
     });
     
     socket!.on('ice-candidate', (Map<String, dynamic> data) async {
-      if (peerConnection != null) {
+      if (peerConnection != null && data['candidate'] != null) {
         await peerConnection!.addCandidate(
-          RTCIceCandidate(data['candidate']['candidate'],
-                         data['candidate']['sdpMid'],
-                         data['candidate']['sdpMlineIndex'])
+          RTCIceCandidate(
+            data['candidate']['candidate'],
+            data['candidate']['sdpMid'],
+            data['candidate']['sdpMLineIndex'],
+          )
         );
       }
     });
@@ -172,7 +192,7 @@ class StreamProvider extends ChangeNotifier {
     activeStreamerId = streamerId;
     
     if (peerConnection != null) {
-      peerConnection!.close();
+      await peerConnection!.close();
     }
     
     peerConnection = await createPeerConnection(config);
@@ -188,7 +208,11 @@ class StreamProvider extends ChangeNotifier {
       if (candidate != null) {
         socket!.emit('ice-candidate', {
           'target': streamerId,
-          'candidate': candidate.toMap(),
+          'candidate': {
+            'candidate': candidate.candidate,
+            'sdpMid': candidate.sdpMid,
+            'sdpMLineIndex': candidate.sdpMLineIndex,
+          },
         });
       }
     };
@@ -198,7 +222,10 @@ class StreamProvider extends ChangeNotifier {
     
     socket!.emit('offer', {
       'target': streamerId,
-      'sdp': offer.toMap(),
+      'sdp': {
+        'sdp': offer.sdp,
+        'type': offer.type,
+      },
       'streamerId': socket!.id,
     });
     
@@ -218,7 +245,7 @@ class StreamProvider extends ChangeNotifier {
     }
     
     await peerConnection!.setRemoteDescription(
-      RTCSessionDescription(data['sdp'], 'offer')
+      RTCSessionDescription(data['sdp']['sdp'], data['sdp']['type'])
     );
     
     final answer = await peerConnection!.createAnswer();
@@ -226,7 +253,10 @@ class StreamProvider extends ChangeNotifier {
     
     socket!.emit('answer', {
       'target': data['from'],
-      'sdp': answer.toMap(),
+      'sdp': {
+        'sdp': answer.sdp,
+        'type': answer.type,
+      },
       'streamerId': socket!.id,
     });
   }
