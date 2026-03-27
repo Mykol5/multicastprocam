@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:webrtc/webrtc.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../../providers/stream_provider.dart';
 
 class WebViewerScreen extends StatefulWidget {
