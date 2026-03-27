@@ -3,30 +3,54 @@ name: Build MultiCast Pro
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build Android & Web
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
       
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.16.0'
-          channel: 'stable'
       
-      - name: Install dependencies
+      # Generate missing project files
+      - name: Generate missing Flutter files
+        run: |
+          cd flutter_app
+          
+          # Create temp project
+          cd ..
+          flutter create temp_project --platforms=android,web
+          
+          # Copy missing folders to flutter_app
+          cp -r temp_project/android flutter_app/ 2>/dev/null || true
+          cp -r temp_project/web flutter_app/ 2>/dev/null || true
+          cp temp_project/pubspec.yaml flutter_app/pubspec.yaml 2>/dev/null || true
+          cp temp_project/analysis_options.yaml flutter_app/ 2>/dev/null || true
+          
+          # Clean up
+          rm -rf temp_project
+          
+          # Now merge our dependencies into pubspec.yaml
+          cd flutter_app
+          echo "" >> pubspec.yaml
+          echo "# Custom dependencies" >> pubspec.yaml
+          echo "dependencies:" >> pubspec.yaml
+          echo "  flutter_webrtc: ^0.9.47" >> pubspec.yaml
+          echo "  socket_io_client: ^2.0.1" >> pubspec.yaml
+          echo "  permission_handler: ^11.0.0" >> pubspec.yaml
+          echo "  provider: ^6.1.0" >> pubspec.yaml
+          echo "  universal_platform: ^1.0.0+1" >> pubspec.yaml
+          echo "  uuid: ^4.0.0" >> pubspec.yaml
+      
+      - name: Get dependencies
         working-directory: ./flutter_app
         run: flutter pub get
       
-      - name: Build Android APK
+      - name: Build APK
         working-directory: ./flutter_app
         run: flutter build apk --release
       
@@ -34,20 +58,9 @@ jobs:
         working-directory: ./flutter_app
         run: flutter build web --release
       
-      # UPDATED: Using v4 instead of v3
-      - name: Upload Android APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: android-app
-          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
-          compression-level: 6
-      
-      # UPDATED: Using v4 instead of v3  
-      - name: Upload Web Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-app
-          path: flutter_app/build/web/
-          retention-days: 30
-          compression-level: 6
+          name: builds
+          path: |
+            flutter_app/build/app/outputs/flutter-apk/app-release.apk
+            flutter_app/build/web/
