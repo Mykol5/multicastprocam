@@ -1,4 +1,4 @@
-# MultiCast Pro
+# MultiCast Pro Cam
 
 A cross-platform streaming application like Irene webcam that allows multiple mobile devices to stream video/audio to a web viewer.
 
