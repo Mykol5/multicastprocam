@@ -8,6 +8,10 @@ class MultiCastStreamProvider extends ChangeNotifier {
   MediaStream? localStream;
   MediaStream? remoteStream;
   
+  // Add renderers
+  RTCVideoRenderer localRenderer = RTCVideoRenderer();
+  RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
+  
   bool isStreaming = false;
   bool isViewer = false;
   String roomId = '';
@@ -35,6 +39,10 @@ class MultiCastStreamProvider extends ChangeNotifier {
     this.isStreaming = true;
     this.isViewer = false;
     
+    // Initialize renderers
+    await localRenderer.initialize();
+    await remoteRenderer.initialize();
+    
     await _connectToSocket();
     await _setupLocalStream();
     await _setupPeerConnectionForStreamer();
@@ -46,6 +54,10 @@ class MultiCastStreamProvider extends ChangeNotifier {
     this.roomId = roomId;
     this.isViewer = true;
     this.isStreaming = false;
+    
+    // Initialize renderers
+    await localRenderer.initialize();
+    await remoteRenderer.initialize();
     
     await _connectToSocket();
     _setupSocketListenersForViewer();
@@ -88,6 +100,8 @@ class MultiCastStreamProvider extends ChangeNotifier {
     
     try {
       localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      // Attach local stream to renderer
+      localRenderer.srcObject = localStream;
       notifyListeners();
     } catch (e) {
       print('Error getting media: $e');
@@ -134,6 +148,14 @@ class MultiCastStreamProvider extends ChangeNotifier {
     
     peerConnection!.onIceConnectionState = (state) {
       print('ICE Connection State: $state');
+    };
+    
+    peerConnection!.onTrack = (event) {
+      if (remoteStream != event.streams[0]) {
+        remoteStream = event.streams[0];
+        remoteRenderer.srcObject = remoteStream;
+        notifyListeners();
+      }
     };
   }
   
@@ -200,6 +222,7 @@ class MultiCastStreamProvider extends ChangeNotifier {
     peerConnection!.onTrack = (event) {
       if (remoteStream != event.streams[0]) {
         remoteStream = event.streams[0];
+        remoteRenderer.srcObject = remoteStream;
         notifyListeners();
       }
     };
@@ -239,6 +262,7 @@ class MultiCastStreamProvider extends ChangeNotifier {
       peerConnection!.onTrack = (event) {
         if (remoteStream != event.streams[0]) {
           remoteStream = event.streams[0];
+          remoteRenderer.srcObject = remoteStream;
           notifyListeners();
         }
       };
@@ -277,6 +301,8 @@ class MultiCastStreamProvider extends ChangeNotifier {
     });
     peerConnection?.close();
     socket?.disconnect();
+    localRenderer.dispose();
+    remoteRenderer.dispose();
     isStreaming = false;
     notifyListeners();
   }
