@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import '../../providers/stream_provider.dart';
+import '../../providers/multicast_stream_provider.dart';
 
 class WebViewerScreen extends StatefulWidget {
   @override
@@ -14,7 +14,7 @@ class _WebViewerScreenState extends State<WebViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<StreamProvider>(context);
+    final provider = Provider.of<MultiCastStreamProvider>(context);
     
     return Scaffold(
       body: Container(
@@ -32,7 +32,7 @@ class _WebViewerScreenState extends State<WebViewerScreen> {
     );
   }
   
-  Widget _buildConnectionScreen(StreamProvider provider) {
+  Widget _buildConnectionScreen(MultiCastStreamProvider provider) {
     return Center(
       child: Container(
         padding: EdgeInsets.all(40),
@@ -76,7 +76,7 @@ class _WebViewerScreenState extends State<WebViewerScreen> {
     );
   }
   
-  Widget _buildViewerScreen(StreamProvider provider) {
+  Widget _buildViewerScreen(MultiCastStreamProvider provider) {
     return Column(
       children: [
         Container(
@@ -194,7 +194,7 @@ class _WebViewerScreenState extends State<WebViewerScreen> {
     );
   }
   
-  void _connectToRoom(StreamProvider provider) async {
+  void _connectToRoom(MultiCastStreamProvider provider) async {
     if (_roomIdController.text.isNotEmpty) {
       await provider.initializeAsViewer(_roomIdController.text);
       setState(() => _isConnected = true);
