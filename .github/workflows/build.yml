@@ -6,12 +6,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-android-web:
+    name: Build Android & Web
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -33,11 +34,103 @@ jobs:
         working-directory: ./flutter_app
         run: flutter build web --release
       
-      - name: Upload builds
+      - name: Upload Android & Web builds
         uses: actions/upload-artifact@v4
         with:
-          name: multicast-pro-builds
+          name: android-web-builds
           path: |
             flutter_app/build/app/outputs/flutter-apk/app-release.apk
             flutter_app/build/web/
+          retention-days: 30
+
+  build-windows:
+    name: Build Windows Desktop
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Run setup script
+        working-directory: ./flutter_app
+        shell: bash
+        run: ./setup.sh
+      
+      - name: Build Windows
+        working-directory: ./flutter_app
+        run: flutter build windows --release
+      
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop
+          path: flutter_app/build/windows/runner/Release/
+          retention-days: 30
+
+  build-macos:
+    name: Build macOS Desktop
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Run setup script
+        working-directory: ./flutter_app
+        run: ./setup.sh
+      
+      - name: Build macOS
+        working-directory: ./flutter_app
+        run: flutter build macos --release
+      
+      - name: Create macOS DMG
+        working-directory: ./flutter_app
+        run: |
+          # Create a DMG for easier distribution
+          hdiutil create -volname "MultiCast Pro" -srcfolder build/macos/Build/Products/Release/multicast_pro.app -ov -format UDZO multicast_pro.dmg
+      
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-desktop
+          path: |
+            flutter_app/build/macos/Build/Products/Release/multicast_pro.app
+            flutter_app/multicast_pro.dmg
+          retention-days: 30
+
+  build-linux:
+    name: Build Linux Desktop
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      
+      - name: Run setup script
+        working-directory: ./flutter_app
+        run: ./setup.sh
+      
+      - name: Build Linux
+        working-directory: ./flutter_app
+        run: flutter build linux --release
+      
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-desktop
+          path: flutter_app/build/linux/x64/release/bundle/
           retention-days: 30
