@@ -1,7 +1,11 @@
 #!/bin/bash
-# setup.sh - Complete setup script for MultiCast Pro (Mobile + Web + Desktop)
+# setup.sh - Complete setup script for MultiCast Pro
 
 echo "📱 Setting up MultiCast Pro Flutter project..."
+
+# Detect OS
+OS=$(uname -s)
+echo "Detected OS: $OS"
 
 # Backup custom lib if exists
 if [ -d "lib" ]; then
@@ -18,9 +22,14 @@ if [ -d "flutter_app" ]; then
   rm -rf flutter_app
 fi
 
-# Create fresh Flutter project with ALL platforms (Android, iOS, Web, Windows, macOS, Linux)
+# Create fresh Flutter project with ALL platforms
 echo "🏗️  Creating new Flutter project with all platforms..."
-flutter create flutter_app --platforms=android,ios,web,windows,macos,linux
+if [[ "$OS" == "Windows"* ]]; then
+  # Windows: use cmd to run flutter
+  flutter create flutter_app --platforms=android,ios,web,windows,macos,linux
+else
+  flutter create flutter_app --platforms=android,ios,web,windows,macos,linux
+fi
 
 # Restore custom lib
 if [ -d "lib_backup" ]; then
@@ -141,10 +150,6 @@ dependencies:
   provider: ^6.1.0
   universal_platform: ^1.0.0+1
   uuid: ^4.0.0
-  
-  # Desktop-specific permissions (for Windows/macOS/Linux)
-  window_manager: ^0.3.0
-  screen_retriever: ^0.1.0
 
 dev_dependencies:
   flutter_test:
@@ -198,15 +203,18 @@ EOF
 echo "📥 Installing dependencies..."
 flutter pub get
 
-# 7. Enable desktop support (if not already)
-echo "🖥️  Enabling desktop support..."
-flutter config --enable-windows-desktop
-flutter config --enable-macos-desktop
-flutter config --enable-linux-desktop
-
-# 8. Verify settings
+# 7. Verify Android settings
 echo "✅ Verifying Android SDK settings..."
 grep "minSdkVersion" android/app/build.gradle
 grep "namespace" android/app/build.gradle
 
-echo "✅ Setup complete! Building all platforms..."
+# 8. For Windows, we need to ensure the build works
+if [[ "$OS" == "Windows"* ]]; then
+  echo "🪟 Windows detected - preparing Windows build..."
+  # Create windows folder if it doesn't exist
+  if [ ! -d "windows" ]; then
+    flutter create --platforms=windows .
+  fi
+fi
+
+echo "✅ Setup complete! Building now..."
