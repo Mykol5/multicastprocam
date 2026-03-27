@@ -5,6 +5,7 @@ import 'providers/multicast_stream_provider.dart';
 import 'mobile/screens/streamer_setup_screen.dart';
 import 'web/screens/web_viewer_screen.dart';
 
+// Desktop will use the viewer mode (like web)
 void main() {
   runApp(MultiCastProApp());
 }
@@ -20,10 +21,20 @@ class MultiCastProApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           useMaterial3: true,
         ),
-        home: UniversalPlatform.isWeb 
-            ? WebViewerScreen()
-            : StreamerSetupScreen(),
+        home: _getHomeScreen(),
       ),
     );
+  }
+  
+  Widget _getHomeScreen() {
+    // Web and Desktop (Windows/macOS/Linux) act as viewers
+    if (UniversalPlatform.isWeb || 
+        UniversalPlatform.isWindows || 
+        UniversalPlatform.isMacOS || 
+        UniversalPlatform.isLinux) {
+      return WebViewerScreen();
+    }
+    // Mobile acts as streamer
+    return StreamerSetupScreen();
   }
 }
