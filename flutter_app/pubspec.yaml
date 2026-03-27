@@ -10,13 +10,13 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # WebRTC - CORRECTED PACKAGE
+  # WebRTC for streaming
   flutter_webrtc: ^0.9.47
   
   # Socket.IO for signaling
   socket_io_client: ^2.0.1
   
-  # Permissions
+  # Permissions for camera/mic
   permission_handler: ^11.0.0
   
   # State management
@@ -25,7 +25,7 @@ dependencies:
   # Platform detection
   universal_platform: ^1.0.0+1
   
-  # UUID for generating unique IDs
+  # UUID for generating IDs
   uuid: ^4.0.0
 
 dev_dependencies:
