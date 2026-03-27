@@ -34,16 +34,20 @@ jobs:
         working-directory: ./flutter_app
         run: flutter build web --release
       
+      # UPDATED: Using v4 instead of v3
       - name: Upload Android APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: android-app
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
+          compression-level: 6
       
+      # UPDATED: Using v4 instead of v3  
       - name: Upload Web Build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: web-app
           path: flutter_app/build/web/
           retention-days: 30
+          compression-level: 6
