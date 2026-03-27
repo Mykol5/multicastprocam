@@ -32,7 +32,7 @@ fi
 # Now fix everything in flutter_app
 cd flutter_app
 
-# 1. Fix Android build.gradle with correct SDK versions
+# 1. Fix Android build.gradle with correct SDK versions AND namespace
 echo "🔧 Fixing Android build.gradle..."
 cat > android/app/build.gradle << 'EOF'
 def localProperties = new Properties()
@@ -63,6 +63,7 @@ apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
+    namespace "com.multicast.pro"
     compileSdkVersion 34
 
     compileOptions {
@@ -150,7 +151,7 @@ flutter:
   uses-material-design: true
 EOF
 
-# 5. Update AndroidManifest.xml to add permissions
+# 5. Update AndroidManifest.xml
 echo "🔧 Updating AndroidManifest.xml..."
 cat > android/app/src/main/AndroidManifest.xml << 'EOF'
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -193,8 +194,9 @@ EOF
 echo "📥 Installing dependencies..."
 flutter pub get
 
-# 7. Verify minSdkVersion
+# 7. Verify settings
 echo "✅ Verifying Android SDK settings..."
 grep "minSdkVersion" android/app/build.gradle
+grep "namespace" android/app/build.gradle
 
 echo "✅ Setup complete! Building now..."
