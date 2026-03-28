@@ -6,12 +6,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  # Android Build
+  android:
+    name: Build Android
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -29,15 +31,136 @@ jobs:
         working-directory: ./flutter_app
         run: flutter build apk --release
       
+      - name: Upload Android builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+  # Web Build
+  web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Make script executable
+        run: chmod +x flutter_app/setup.sh
+      
+      - name: Run setup script
+        working-directory: ./flutter_app
+        run: ./setup.sh
+      
       - name: Build Web
         working-directory: ./flutter_app
         run: flutter build web --release
       
-      - name: Upload builds
+      - name: Upload Web builds
         uses: actions/upload-artifact@v4
         with:
-          name: multicast-pro-builds
-          path: |
-            flutter_app/build/app/outputs/flutter-apk/app-release.apk
-            flutter_app/build/web/
+          name: web-app
+          path: flutter_app/build/web/
           retention-days: 30
+
+  # Windows Desktop Build - Simplified
+  windows:
+    name: Build Windows Desktop
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+      
+      - name: Setup Windows project
+        working-directory: ./flutter_app
+        run: |
+          if not exist windows (
+            flutter create --platforms=windows .
+          )
+          flutter pub get
+      
+      - name: Build Windows EXE
+        working-directory: ./flutter_app
+        run: flutter build windows --release
+      
+      - name: Upload Windows EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop
+          path: flutter_app/build/windows/x64/runner/Release/
+          retention-days: 30
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# name: Build MultiCast Pro
+
+# on:
+#   push:
+#     branches: [ main, master ]
+#   workflow_dispatch:
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+    
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
+      
+#       - name: Setup Flutter
+#         uses: subosito/flutter-action@v2
+#         with:
+#           flutter-version: '3.16.0'
+      
+#       - name: Make script executable
+#         run: chmod +x flutter_app/setup.sh
+      
+#       - name: Run setup script
+#         working-directory: ./flutter_app
+#         run: ./setup.sh
+      
+#       - name: Build Android APK
+#         working-directory: ./flutter_app
+#         run: flutter build apk --release
+      
+#       - name: Build Web
+#         working-directory: ./flutter_app
+#         run: flutter build web --release
+      
+#       - name: Upload builds
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: multicast-pro-builds
+#           path: |
+#             flutter_app/build/app/outputs/flutter-apk/app-release.apk
+#             flutter_app/build/web/
+#           retention-days: 30
